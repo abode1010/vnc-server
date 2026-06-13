@@ -21,9 +21,9 @@ ENV USER=root
 ENV HOME=/root
 ENV DISPLAY=:1
 
-# إنشاء مجلد إعدادات VNC واختيار كلمة مرور (vncpass)
+# إنشاء مجلد إعدادات VNC وتوليد كلمة المرور الجديدة (root)
 RUN mkdir -p /root/.vnc \
-    && echo "vncpass" | vncpass -f > /root/.vnc/passwd \
+    && echo "root" | vncpasswd -f > /root/.vnc/passwd \
     && chmod 600 /root/.vnc/passwd
 
 # إنشاء ملف بدء تشغيل الواجهة الرسومية داخل VNC
@@ -44,4 +44,3 @@ EXPOSE 8080
 
 # تشغيل السكربت عند بدء الحاوية
 CMD ["/entrypoint.sh"]
-
