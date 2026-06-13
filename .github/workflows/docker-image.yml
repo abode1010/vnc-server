@@ -1,0 +1,49 @@
+FROM ubuntu:22.04
+
+# منع الأسئلة التفاعلية أثناء التثبيت
+ENV DEBIAN_FRONTEND=noninteractive
+
+# تثبيت التحديثات والواجهة الرسومية (XFCE) وأدوات VNC
+RUN apt-get update && apt-get install -y \
+    xfce4 \
+    xfce4-goodies \
+    tightvncserver \
+    novnc \
+    websockify \
+    curl \
+    wget \
+    net-tools \
+    && apt-get clean \
+    rm -rf /var/lib/apt/lists/*
+
+# إعداد متغيرات البيئة للشاشة والمستخدم
+ENV USER=root
+ENV HOME=/root
+ENV DISPLAY=:1
+
+# إنشاء مجلد إعدادات VNC واختيار كلمة مرور (هنا كلمة المرور الافتراضية: vncpass)
+RUN mkdir -p /root/.vnc \
+    && echo "vncpass" | vncpass -f > /root/.vnc/passwd \
+    && chmod 600 /root/.vnc/passwd
+
+# إنشاء ملف بدء تشغيل الواجهة الرسومية داخل VNC
+RUN echo "#!/bin/sh\n\
+xrdb \$HOME/.Xresources\n\
+startxfce4 &" > /root/.vnc/xstartup \
+    && chmod +x /root/.vnc/xstartup
+
+# إنشاء سكربت التشغيل الرئيسي لـ Railway
+RUN echo "#!/bin/sh\n\
+# إزالة أي قفل قديم للشاشة\n\
+vncserver -kill :1 || true\n\
+# تشغيل سيرفر VNC بأبعاد الشاشة وعمق الألوان\n\
+vncserver :1 -geometry 1280x720 -depth 24\n\
+# تشغيل noVNC لتحويل البث إلى منفذ الويب الذي تطلبه Railway\n\
+/usr/share/novnc/utils/launch.sh --vnc localhost:5901 --listen \${PORT:-8080}" > /entrypoint.sh \
+    && chmod +x /entrypoint.sh
+
+# المنفذ الذي ستفتحه Railway تلقائياً
+EXPOSE 8080
+
+# تشغيل السكربت عند بدء الحاوية
+CMD ["/entrypoint.sh"]
